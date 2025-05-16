@@ -2,8 +2,6 @@
 Style Fusion AI, yapay zeka kullanarak farklı sanat stillerini ve metin istemlerini birleştirerek sanatsal görseller üretir. Kullanıcılar, stilleri karıştırarak ve metin açıklamalarıyla benzersiz sanat eserleri yaratabilir. FastAPI ve React ile hızlı, dinamik bir görsel üretim deneyimi sunar.
 Evet, yazdığımız bu açıklamayı **README.md** dosyasına eklemeniz çok mantıklı olacaktır. **README.md**, projenizin ne olduğunu, nasıl çalıştığını ve nasıl kurulup kullanılacağını açıklayan bir dosya olarak GitHub reposunda yer alır. Bu dosya, projenize başlamak isteyen kişilerin doğru bilgilere kolayca ulaşmalarını sağlar.
 
-**README.md** dosyanıza şu başlıkları ve metni ekleyebilirsiniz:
-
 ---
 
 # **ArtBlendAI: Generative Art with Style Transfer and Text Prompts**
