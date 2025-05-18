@@ -8,103 +8,241 @@ from torchvision.utils import save_image
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from deep_translator import GoogleTranslator
-from models.generator import Generator
 from sentence_transformers import SentenceTransformer
+from models.generator import Generator
 
+# Device setup
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Stil eşlemesi
+# Load style dictionary
 with open("frontend/public/styles.json", "r", encoding="utf-8") as f:
     style_dict = json.load(f)
 
-style_dim = 128
-prompt_dim = 384
-img_size = 128
+# Embedding dimensions
+style_emb_dim = 128             # Must match training
 num_styles = len(style_dict)
+latent_dim = 100                # Must match training
+prompt_dim = 384                # From sentence-transformers all-MiniLM-L6-v2
+img_size = 128                  # Must match model
 
-# Prompt modeli
-st_model = SentenceTransformer("all-MiniLM-L6-v2")
-st_model.to(device)
-
-# Generator yüklenir
-generator = Generator(style_dim=style_dim, prompt_dim=prompt_dim, img_size=img_size).to(device)
-generator.load_state_dict(torch.load("outputs/final_model.pth", map_location=device))
-generator.eval()
-
-# Style embedding yüklenir
-style_embedding = nn.Embedding(num_styles, style_dim).to(device)
-style_embedding.load_state_dict(torch.load("outputs/style_embedding_final.pth", map_location=device))
+# Initialize and load style embedding
+style_embedding = nn.Embedding(num_styles, style_emb_dim).to(device)
+emb_path = "outputs/final_embedding.pth"
+if not os.path.isfile(emb_path):
+    raise FileNotFoundError(f"Style embedding checkpoint not found: {emb_path}")
+style_embedding.load_state_dict(torch.load(emb_path, map_location=device))
 style_embedding.eval()
 
-# Prompt temizleyici
-def clean_prompt(text):
-    text = text.lower()
-    text = re.sub(r'[^\w\s]', '', text)
-    stopwords = ['a', 'an', 'the', 'and', 'or', 'but', 'with', 'of', 'to', 'at', 'in', 'on', 'for', 'like']
-    return " ".join([w for w in text.split() if w not in stopwords])
+# For Generator, style_dim equals embedding dim
+style_dim = style_emb_dim
 
-# Prompt gömme
-def embed_prompt(text):
-    return st_model.encode([text], convert_to_tensor=True).to(device)
+# Initialize and load prompt encoder (frozen)
+st_model = SentenceTransformer("all-MiniLM-L6-v2", device=device)
+st_model.eval()
+for param in st_model.parameters():
+    param.requires_grad = False
 
-# Stil ismini ID'ye çevir
-def get_style_id(style_name):
-    idx = style_dict.get(style_name.strip().lower())
-    if idx is None:
-        raise ValueError(f"Stil bulunamadı: {style_name}")
-    return torch.tensor([idx], device=device)
+# Initialize and load Generator
+generator = Generator(latent_dim, style_dim, prompt_dim, img_size).to(device)
+gen_ckpt_path = "outputs/final_model.pth"
+if not os.path.isfile(gen_ckpt_path):
+    raise FileNotFoundError(f"Generator checkpoint not found: {gen_ckpt_path}")
+generator.load_state_dict(torch.load(gen_ckpt_path, map_location=device))
+generator.eval()
 
-# API modeli
+# Utility: clean and translate prompt
+def preprocess_prompt(text: str) -> str:
+    text = text.strip().lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    stopwords = {'a','an','the','and','or','but','with','of','to','at','in','on','for','like'}
+    return " ".join(w for w in text.split() if w not in stopwords)
+
+# FastAPI schema and router
 class GenerateRequest(BaseModel):
     prompt: str
     style1: str
-    style2: str
-    blendMode: str  # Yeni eklendi
+    style2: str = None
+    blend_mode: str  # 'style1', 'style2', or 'mix'
 
 router = APIRouter()
 
 @router.post("/generate")
-def generate_image(request: GenerateRequest):
-    # Stil ID'lerini al
+async def generate_image(request: GenerateRequest):
+    # Validate blend mode
+    mode = request.blend_mode.lower()
+    if mode not in {"style1","style2","mix"}:
+        raise HTTPException(status_code=400, detail="blend_mode must be 'style1', 'style2', or 'mix'.")
+
+    # Embed styles
+    def get_vec(name: str):
+        idx = style_dict.get(name.strip().lower())
+        if idx is None:
+            raise ValueError(f"Style not found: {name}")
+        return style_embedding(torch.tensor([idx], device=device))
+
     try:
-        style_id_1 = get_style_id(request.style1)
-        style_id_2 = get_style_id(request.style2)
+        if mode == "style1":
+            style_vec = get_vec(request.style1)
+        elif mode == "style2":
+            style_vec = get_vec(request.style2)
+        else:
+            if not request.style2:
+                raise ValueError("mix mode requires both style1 and style2.")
+            style_vec = 0.5 * get_vec(request.style1) + 0.5 * get_vec(request.style2)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Stil vektörlerini al ve blend moduna göre birleştir
-    with torch.no_grad():
-        s1 = style_embedding(style_id_1)
-        s2 = style_embedding(style_id_2)
-
-        mode = request.blendMode.lower()
-        if mode == "style1":
-            style_vec = s1
-        elif mode == "style2":
-            style_vec = s2
-        elif mode == "random":
-            alpha = torch.rand(1).item()
-            style_vec = alpha * s1 + (1 - alpha) * s2
-        else:  # "mean" veya bilinmeyen değerler için ortalama
-            style_vec = 0.5 * s1 + 0.5 * s2
-
-    # Prompt temizle, çevir, göm
+    # Preprocess and embed prompt
     try:
-        translated = GoogleTranslator(source="auto", target="en").translate(request.prompt)
-        cleaned = clean_prompt(translated)
-        prompt_vec = embed_prompt(cleaned)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Prompt işlenemedi: " + str(e))
+        text_en = GoogleTranslator(source='auto', target='en').translate(request.prompt)
+    except Exception:
+        text_en = request.prompt
+    cleaned = preprocess_prompt(text_en)
+    prompt_emb = st_model.encode(cleaned, convert_to_tensor=True).unsqueeze(0).to(device)
 
-    # Görsel üret
+    # Generate image
+    z = torch.randn(1, latent_dim, device=device)
     try:
         with torch.no_grad():
-            gen_img = generator(style_vec, prompt_vec)
+            img_tensor = generator(z, style_vec, prompt_emb)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Görsel üretimi başarısız: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Image generation error: {e}")
 
-    # Kaydet
-    output_path = f"outputs/generated_{random.randint(10000, 99999)}.png"
-    save_image(gen_img, output_path, normalize=True)
+    # Save and return URL
+    out_dir = "outputs/generated"
+    os.makedirs(out_dir, exist_ok=True)
+    fname = f"gen_{random.randint(100000,999999)}.png"
+    save_image(img_tensor, os.path.join(out_dir, fname), normalize=True)
+    return {"image_url": f"/outputs/generated/{fname}"}
 
-    return {"image_path": output_path}
+@router.get("/generated")
+def list_generated_images(ext: str = None):
+    fs = "outputs/generated"
+    web = "/outputs/generated/"
+    allowed = [e.strip().lower() for e in ext.split(',')] if ext else ['png','jpg','jpeg']
+    urls = [web + f for f in sorted(os.listdir(fs)) if f.lower().endswith(tuple(allowed))]
+    return urls
+import os
+import json
+import torch
+import random
+import re
+from torch import nn
+from torchvision.utils import save_image
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from deep_translator import GoogleTranslator
+from sentence_transformers import SentenceTransformer
+from models.generator import Generator
+
+# Device setup
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Load style dictionary
+with open("frontend/public/styles.json", "r", encoding="utf-8") as f:
+    style_dict = json.load(f)
+
+# Embedding dimensions
+style_emb_dim = 128             # Must match training
+num_styles = len(style_dict)
+latent_dim = 100                # Must match training
+prompt_dim = 384                # From sentence-transformers all-MiniLM-L6-v2
+img_size = 128                  # Must match model
+
+# Initialize and load style embedding
+style_embedding = nn.Embedding(num_styles, style_emb_dim).to(device)
+emb_path = "outputs/final_embedding1.pth"
+if not os.path.isfile(emb_path):
+    raise FileNotFoundError(f"Style embedding checkpoint not found: {emb_path}")
+style_embedding.load_state_dict(torch.load(emb_path, map_location=device))
+style_embedding.eval()
+
+# For Generator, style_dim equals embedding dim
+style_dim = style_emb_dim
+
+# Initialize and load prompt encoder (frozen)
+st_model = SentenceTransformer("all-MiniLM-L6-v2", device=device)
+st_model.eval()
+for param in st_model.parameters():
+    param.requires_grad = False
+
+# Initialize and load Generator
+generator = Generator(latent_dim, style_dim, prompt_dim, img_size).to(device)
+gen_ckpt_path = "outputs/final_model1.pth"
+if not os.path.isfile(gen_ckpt_path):
+    raise FileNotFoundError(f"Generator checkpoint not found: {gen_ckpt_path}")
+generator.load_state_dict(torch.load(gen_ckpt_path, map_location=device))
+generator.eval()
+
+# Utility: clean and translate prompt
+def preprocess_prompt(text: str) -> str:
+    text = text.strip().lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    stopwords = {'a','an','the','and','or','but','with','of','to','at','in','on','for','like'}
+    return " ".join(w for w in text.split() if w not in stopwords)
+
+# FastAPI schema and router
+class GenerateRequest(BaseModel):
+    prompt: str
+    style1: str
+    style2: str = None
+    blend_mode: str  # 'style1', 'style2', or 'mix'
+
+router = APIRouter()
+
+@router.post("/generate")
+async def generate_image(request: GenerateRequest):
+    # Validate blend mode
+    mode = request.blend_mode.lower()
+    if mode not in {"style1","style2","mix"}:
+        raise HTTPException(status_code=400, detail="blend_mode must be 'style1', 'style2', or 'mix'.")
+
+    # Embed styles
+    def get_vec(name: str):
+        idx = style_dict.get(name.strip().lower())
+        if idx is None:
+            raise ValueError(f"Style not found: {name}")
+        return style_embedding(torch.tensor([idx], device=device))
+
+    try:
+        if mode == "style1":
+            style_vec = get_vec(request.style1)
+        elif mode == "style2":
+            style_vec = get_vec(request.style2)
+        else:
+            if not request.style2:
+                raise ValueError("mix mode requires both style1 and style2.")
+            style_vec = 0.5 * get_vec(request.style1) + 0.5 * get_vec(request.style2)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Preprocess and embed prompt
+    try:
+        text_en = GoogleTranslator(source='auto', target='en').translate(request.prompt)
+    except Exception:
+        text_en = request.prompt
+    cleaned = preprocess_prompt(text_en)
+    prompt_emb = st_model.encode(cleaned, convert_to_tensor=True).unsqueeze(0).to(device)
+
+    # Generate image
+    z = torch.randn(1, latent_dim, device=device)
+    try:
+        with torch.no_grad():
+            img_tensor = generator(z, style_vec, prompt_emb)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image generation error: {e}")
+
+    # Save and return URL
+    out_dir = "outputs/generated"
+    os.makedirs(out_dir, exist_ok=True)
+    fname = f"gen_{random.randint(100000,999999)}.png"
+    save_image(img_tensor, os.path.join(out_dir, fname), normalize=True)
+    return {"image_url": f"/outputs/generated/{fname}"}
+
+@router.get("/generated")
+def list_generated_images(ext: str = None):
+    fs = "outputs/generated"
+    web = "/outputs/generated/"
+    allowed = [e.strip().lower() for e in ext.split(',')] if ext else ['png','jpg','jpeg']
+    urls = [web + f for f in sorted(os.listdir(fs)) if f.lower().endswith(tuple(allowed))]
+    return urls
