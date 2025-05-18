@@ -51,7 +51,7 @@ def embed_prompt_batch(texts, tokenizer, model, device):
 def train_gan(
     data_path="data/wikiart",
     img_size=128,
-    num_epochs=60,
+    num_epochs=1,
     batch_size=16,
     save_interval=2,
     output_dir="outputs/"
@@ -139,8 +139,8 @@ def train_gan(
         # Kaydetme: En iyi generator ve embedding'i kaydet
         if g_loss.item() < best_g_loss:
             best_g_loss = g_loss.item()
-            torch.save(generator.state_dict(), os.path.join(output_dir, "final_model.pth"))
-            torch.save(style_embedding.state_dict(), os.path.join(output_dir, "final_embedding.pth"))
+            torch.save(generator.state_dict(), os.path.join(output_dir, "final_model1.pth"))
+            torch.save(style_embedding.state_dict(), os.path.join(output_dir, "final_embedding1.pth"))
 
         # Görsel çıktıları kaydet
         save_image(gen_imgs[:25], os.path.join(output_dir, f"{epoch:03d}_generated.png"), nrow=5, normalize=True)
