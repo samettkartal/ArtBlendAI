@@ -97,19 +97,52 @@ Frontend kısmı **React** ve **Vite** ile geliştirilmiştir. React uygulaması
 ## **Proje Yapısı**
 
 ```plaintext
-├── backend/
-│   ├── main.py                # FastAPI uygulama dosyası
-│   ├── requirements.txt       # Backend bağımlılıkları
-│   ├── models/                # AI modelleri ve eğitim dosyaları
-│   └── outputs/               # Üretilen görseller
+GAN-STYLE-FUSION-AI/
+├── app/      
+│   ├── main.py              # FastAPI uygulama giriş noktası
+│   ├── routes/
+│      └── generate.py       # API endpoint’leri
+│   
+│
+├── data/
+│   ├── wikiart/              # WikiArt veri seti (ignored)
+│   
+│
 ├── frontend/
+│   ├── public/
+│   │   ├── favicon.ico
+│   │   └── vite.svg
+│   │
 │   ├── src/
-│   │   ├── components/        # React bileşenleri
-│   │   ├── App.jsx            # Ana React bileşeni
-│   │   ├── styles.css         # Genel stil dosyası
-│   ├── package.json           # Frontend bağımlılıkları
-│   ├── vite.config.js         # Vite yapılandırma dosyası
-└── README.md                  # Proje açıklaması ve kurulum rehberi
+│   │   ├── components/
+│   │   │   ├── GenerateButton.jsx
+│   │   │   ├── GenerateButton.css
+│   │   │   ├── ImageDisplay.jsx
+│   │   │   ├── ImageDisplay.css
+│   │   │   ├── PromptInput.jsx
+│   │   │   ├── PromptInput.css
+│   │   │   ├── ThemeSelector.jsx
+│   │   │   └── ThemeSelector.css
+│   │   │
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── index.css
+│   │   └── styles.json
+│   │
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── vite.config.js
+│   └── eslint.config.js
+│
+├── outputs/          # Üretilen görseller ve modeller (gitignored)
+│   ├── best_generator.pth
+│   ├── style_embedding_final.pth
+│   ├── generated_51196.png(örn.)
+│                   
+│
+├── .gitignore
+└── README.md
+
 ```
 
 ---
