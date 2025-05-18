@@ -28,7 +28,7 @@ st_model.to(device)
 
 # Generator yüklenir
 generator = Generator(style_dim=style_dim, prompt_dim=prompt_dim, img_size=img_size).to(device)
-generator.load_state_dict(torch.load("outputs/best_generator.pth", map_location=device))
+generator.load_state_dict(torch.load("outputs/final_model.pth", map_location=device))
 generator.eval()
 
 # Style embedding yüklenir
