@@ -19,6 +19,7 @@ class Discriminator(nn.Module):
         input_dim = flattened_img_dim + style_dim + prompt_dim
 
         # Daha küçük katmanlar ve dropout ile hafifletildi
+        # Discriminator'da değişiklik (sadece son katmanı güncelleyin)
         self.model = nn.Sequential(
             nn.Linear(input_dim, 512),
             nn.LeakyReLU(0.2, inplace=True),
@@ -28,9 +29,9 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Dropout(dropout_p),
 
-            nn.Linear(256, 1),
-            nn.Sigmoid()
+            nn.Linear(256, 1)  # <- Sigmoid kaldırıldı
         )
+
 
         self._initialize_weights()
 
