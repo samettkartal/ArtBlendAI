@@ -42,9 +42,10 @@
 * **CSS / Tailwind CSS**: Arayüzde stil uygulamak için kullanılır. Tailwind, hızlı prototipleme ve özelleştirilmiş stiller oluşturmanıza yardımcı olur. Tasarım, şık ve uyumlu bileşenlerle yapılmıştır.
 * **React Router**: Tek sayfa uygulamaları (SPA) için yönlendirme sağlar. Sayfalar arasında geçiş yapmadan uygulamanın hızlı bir şekilde çalışmasını sağlar.
 
-  ![image](https://github.com/user-attachments/assets/f286e83c-50b8-46c4-9d70-d3037dff327e)
+  ![arayüz](https://github.com/user-attachments/assets/f286e83c-50b8-46c4-9d70-d3037dff327e)
 
-  ![arayüz2](https://github.com/user-attachments/assets/7cc28191-1a39-4170-8943-3f1d4dc05215)
+  ![arayüz2](https://github.com/user-attachments/assets/ed977350-44cc-4789-8ee0-9bec1bfc187c)
+
 
 
 
