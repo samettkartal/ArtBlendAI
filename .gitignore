@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+art-blend-ai-front/.idea
+
+art-blend-ai-front/node_modules
