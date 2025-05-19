@@ -41,7 +41,12 @@
 * **Vite**: Modern JavaScript uygulamaları için hızlı geliştirme deneyimi sunar. Vite ile hızlı modül paketleme ve derleme işlemleri sağlanır.
 * **CSS / Tailwind CSS**: Arayüzde stil uygulamak için kullanılır. Tailwind, hızlı prototipleme ve özelleştirilmiş stiller oluşturmanıza yardımcı olur. Tasarım, şık ve uyumlu bileşenlerle yapılmıştır.
 * **React Router**: Tek sayfa uygulamaları (SPA) için yönlendirme sağlar. Sayfalar arasında geçiş yapmadan uygulamanın hızlı bir şekilde çalışmasını sağlar.
-  
+
+  ![image](https://github.com/user-attachments/assets/f286e83c-50b8-46c4-9d70-d3037dff327e)
+
+  ![image](https://github.com/user-attachments/assets/495486db-1ba4-4e67-b333-f8ead0fbab13)
+
+
 * ### **4. Backend (Sunucu Tarafı):**
 
 * **FastAPI**: Python tabanlı bir web framework’üdür. **FastAPI**, RESTful API servisi sunarak **React** frontend'i ile hızlı ve güvenli veri iletişimini sağlar. Görsel üretim istekleri burada işlenir ve sonuç frontend'e döndürülür.
