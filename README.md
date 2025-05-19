@@ -108,7 +108,7 @@ GAN-STYLE-FUSION-AI/
 │   ├── wikiart/              # WikiArt veri seti (ignored)
 │   
 │
-├── frontend/
+├── art-blend-ai-front/
 │   ├── public/
 │   │   ├── favicon.ico
 │   │   └── vite.svg
