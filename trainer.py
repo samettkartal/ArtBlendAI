@@ -185,8 +185,8 @@ def train_gan(
         # Save best model
         if g_loss_step.item() < best_g_loss:
             best_g_loss = g_loss_step.item()
-            torch.save(generator.state_dict(), os.path.join(output_dir, "best_generator.pth"))
-            torch.save(style_embedding.state_dict(), os.path.join(output_dir, "best_embedding.pth"))
+            torch.save(generator.state_dict(), os.path.join(output_dir, "final_model.pth"))
+            torch.save(style_embedding.state_dict(), os.path.join(output_dir, "final_embedding.pth"))
 
         # Periodic image outputs
         if epoch % save_every == 0 or epoch == num_epochs:
