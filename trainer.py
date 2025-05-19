@@ -45,7 +45,7 @@ class WikiArtDataset(Dataset):
 def train_gan(
     data_path="data/wikiart",
     img_size=128,
-    num_epochs=50,
+    num_epochs=100,
     batch_size=32,
     save_every=5,
     output_dir="outputs/"
