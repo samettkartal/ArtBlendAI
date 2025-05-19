@@ -44,7 +44,7 @@
 
   ![arayüz](https://github.com/user-attachments/assets/f286e83c-50b8-46c4-9d70-d3037dff327e)
 
-Kullanıcı Arayüzü
+### **Kullanıcı Arayüzü**
 
 Kısa bir metin prompt ve blend mode girilir.
 
@@ -52,7 +52,7 @@ Açılır menülerden Stil 1 ve Stil 2 seçilir.
 
 “Görseli Üret” butonuna tıklanır.
 
-Arka Uç İşlemleri
+### **Arka Uç İşlemleri**
 Frontend, FastAPI’ye aşağıdaki gibi bir POST /generate isteği yollar:
 
 {
