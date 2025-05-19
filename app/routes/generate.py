@@ -27,7 +27,7 @@ img_size = 128                  # Must match model
 
 # Initialize and load style embedding
 style_embedding = nn.Embedding(num_styles, style_emb_dim).to(device)
-emb_path = "outputs/final_embedding2.pth"
+emb_path = "outputs/final_embedding.pth"
 if not os.path.isfile(emb_path):
     raise FileNotFoundError(f"Style embedding checkpoint not found: {emb_path}")
 style_embedding.load_state_dict(torch.load(emb_path, map_location=device))
@@ -44,7 +44,7 @@ for param in st_model.parameters():
 
 # Initialize and load Generator
 generator = Generator(latent_dim, style_dim, prompt_dim, img_size).to(device)
-gen_ckpt_path = "outputs/final_model2.pth"
+gen_ckpt_path = "outputs/final_model.pth"
 if not os.path.isfile(gen_ckpt_path):
     raise FileNotFoundError(f"Generator checkpoint not found: {gen_ckpt_path}")
 generator.load_state_dict(torch.load(gen_ckpt_path, map_location=device))
