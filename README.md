@@ -60,12 +60,17 @@ Frontend, FastAPI’ye aşağıdaki gibi bir POST /generate isteği yollar:
   "blend_mode": "mix"
 }
 
--Metin tabanlı prompt, sentence-transformers ile embedding’e (prompt_vec) dönüştürülür.
--Rastgele üretilen latent vektör (z) ile style_vec1 ve style_vec2 birleştirilir.
--Bu birleşik vektör, özgün GAN generator modeline aktarılır ve yeni görsel oluşturulur.
--Oluşan görüntü PNG formatında kaydedilir; bir image_url oluşturulur.
--FastAPI, JSON yanıtında { "status": "success", "image_url": "https://…" } döner.
--Frontend, dönen image_url’i alıp ekranda kullanıcıya gösterir.
+Metin tabanlı prompt, sentence-transformers ile embedding’e (prompt_vec) dönüştürülür.
+
+Rastgele üretilen latent vektör (z) ile style_vec1 ve style_vec2 birleştirilir.
+
+Bu birleşik vektör, özgün GAN generator modeline aktarılır ve yeni görsel oluşturulur.
+
+Oluşan görüntü PNG formatında kaydedilir; bir image_url oluşturulur.
+
+FastAPI, JSON yanıtında { "status": "success", "image_url": "https://…" } döner.
+
+Frontend, dönen image_url’i alıp ekranda kullanıcıya gösterir.
 
   ![arayüz2](https://github.com/user-attachments/assets/ed977350-44cc-4789-8ee0-9bec1bfc187c)
 
@@ -76,7 +81,7 @@ Frontend, FastAPI’ye aşağıdaki gibi bir POST /generate isteği yollar:
 - Genişletilmiş önizlemede, ekranın sağ üst köşesindeki **✕** butonuyla modal kapatılabilir.  
 - Yeni bir görsel üretildikçe galeri otomatik olarak güncellenir ve en başa eklenir.  
 
-* ### **4. Backend (Sunucu Tarafı):**
+ ### **4. Backend (Sunucu Tarafı):**
 
 * **FastAPI**: Python tabanlı bir web framework’üdür. **FastAPI**, RESTful API servisi sunarak **React** frontend'i ile hızlı ve güvenli veri iletişimini sağlar. Görsel üretim istekleri burada işlenir ve sonuç frontend'e döndürülür.
 * **PyTorch**: Derin öğrenme framework'ü olarak kullanılır. Model eğitimi ve görsel üretimi işlemleri **PyTorch** ile gerçekleştirilir.
