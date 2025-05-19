@@ -44,6 +44,35 @@
 
   ![arayüz](https://github.com/user-attachments/assets/f286e83c-50b8-46c4-9d70-d3037dff327e)
 
+Kullanıcı Arayüzü
+
+Kısa bir metin prompt ve blend mode girilir.
+
+Açılır menülerden Stil 1 ve Stil 2 seçilir.
+
+“Görseli Üret” butonuna tıklanır.
+
+Arka Uç İşlemleri
+Frontend, FastAPI’ye aşağıdaki gibi bir POST /generate isteği yollar:
+
+{
+  "prompt": "Güneş batarken bir kedi",
+  "style1": "cubism",
+  "style2": "baroque",
+  "blend_mode": "mix"
+}
+Metin tabanlı prompt, sentence-transformers ile embedding’e (prompt_vec) dönüştürülür.
+
+Rastgele üretilen latent vektör (z) ile style_vec1 ve style_vec2 birleştirilir.
+
+Bu birleşik vektör, özgün GAN generator modeline aktarılır ve yeni görsel oluşturulur.
+
+Oluşan görüntü PNG formatında kaydedilir; bir image_url oluşturulur.
+
+FastAPI, JSON yanıtında { "status": "success", "image_url": "https://…" } döner.
+
+Frontend, dönen image_url’i alıp ekranda kullanıcıya gösterir.
+
   ![arayüz2](https://github.com/user-attachments/assets/ed977350-44cc-4789-8ee0-9bec1bfc187c)
 
 
