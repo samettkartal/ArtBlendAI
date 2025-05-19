@@ -44,7 +44,8 @@
 
   ![image](https://github.com/user-attachments/assets/f286e83c-50b8-46c4-9d70-d3037dff327e)
 
-  ![image](https://github.com/user-attachments/assets/495486db-1ba4-4e67-b333-f8ead0fbab13)
+  ![arayüz2](https://github.com/user-attachments/assets/7cc28191-1a39-4170-8943-3f1d4dc05215)
+
 
 
 * ### **4. Backend (Sunucu Tarafı):**
