@@ -51,7 +51,7 @@ def embed_prompt_batch(texts, tokenizer, model, device):
 def train_gan(
     data_path="data/wikiart",
     img_size=128,
-    num_epochs=1,
+    num_epochs=15,
     batch_size=16,
     save_interval=2,
     output_dir="outputs/"
@@ -116,22 +116,57 @@ def train_gan(
             prompt_vec = embed_prompt_batch(prompt_names, tokenizer, st_model, device)
 
             # Generator
+            # --- Güçlendirilmiş Generator adımı ---
             optimizer_G.zero_grad()
+
+            # 1) Üretilen görüntüler
             gen_imgs = generator(style_vec, prompt_vec)
+
+            # 2) Adversarial loss (label smoothing: hedef 0.9)
             validity = discriminator(gen_imgs, style_vec.detach(), prompt_vec.detach())
-            g_loss = loss_fn(validity, torch.ones_like(validity))
+            real_targets = torch.full_like(validity, 0.9)
+            adv_loss = loss_fn(validity, real_targets)
+
+            # 3) Total Variation (TV) loss – daha pürüzsüz çıktılar için
+            tv_h = torch.mean(torch.abs(gen_imgs[:, :, 1:, :] - gen_imgs[:, :, :-1, :]))
+            tv_w = torch.mean(torch.abs(gen_imgs[:, :, :, 1:] - gen_imgs[:, :, :, :-1]))
+            tv_loss = tv_h + tv_w
+
+            # 4) Toplam Generator loss: adversarial + küçük TV düzenlemesi
+            g_loss = adv_loss + 1e-5 * tv_loss
+
+            # 5) Geri yayılım ve adım
             g_loss.backward()
             optimizer_G.step()
 
+
             # Discriminator
-            optimizer_D.zero_grad()
-            real_validity = discriminator(imgs, style_vec.detach(), prompt_vec.detach())
-            fake_validity = discriminator(gen_imgs.detach(), style_vec.detach(), prompt_vec.detach())
-            d_loss_real = loss_fn(real_validity, torch.ones_like(real_validity))
-            d_loss_fake = loss_fn(fake_validity, torch.zeros_like(fake_validity))
-            d_loss = (d_loss_real + d_loss_fake) / 2
-            d_loss.backward()
-            optimizer_D.step()
+            if i % 20 == 0:
+                optimizer_D.zero_grad()
+
+    # Hafif instance noise ile gerçek görüntüleri yumuşat
+                noise_std = 0.03
+                imgs_noisy = imgs + noise_std * torch.randn_like(imgs)
+
+                # İleri geçiş
+                real_validity = discriminator(imgs_noisy, style_vec.detach(), prompt_vec.detach())
+                fake_validity = discriminator(gen_imgs.detach(), style_vec.detach(), prompt_vec.detach())
+
+                # Label smoothing: gerçekleri 0.9, sahteleri 0.1
+                real_targets = torch.full_like(real_validity, 0.9)
+                fake_targets = torch.full_like(fake_validity, 0.1)
+
+                # D kaybını hesapla ve biraz zayıflatmak için ölçeklendir
+                d_loss_real = loss_fn(real_validity, real_targets)
+                d_loss_fake = loss_fn(fake_validity, fake_targets)
+                d_loss = 0.5 * (d_loss_real + d_loss_fake)  # ek bir 0.5 faktörüyle gradyanı yumuşat
+
+                d_loss.backward()
+
+                # İsteğe bağlı: gradyanları kırpmak
+                torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)
+
+                optimizer_D.step()
 
             if i % 5 == 0:
                 print(f"[Epoch {epoch}/{num_epochs}] [Batch {i}] D Loss: {d_loss.item():.4f} | G Loss: {g_loss.item():.4f}")
@@ -139,8 +174,8 @@ def train_gan(
         # Kaydetme: En iyi generator ve embedding'i kaydet
         if g_loss.item() < best_g_loss:
             best_g_loss = g_loss.item()
-            torch.save(generator.state_dict(), os.path.join(output_dir, "final_model1.pth"))
-            torch.save(style_embedding.state_dict(), os.path.join(output_dir, "final_embedding1.pth"))
+            torch.save(generator.state_dict(), os.path.join(output_dir, "final_model.pth"))
+            torch.save(style_embedding.state_dict(), os.path.join(output_dir, "final_embedding.pth"))
 
         # Görsel çıktıları kaydet
         save_image(gen_imgs[:25], os.path.join(output_dir, f"{epoch:03d}_generated.png"), nrow=5, normalize=True)
@@ -153,5 +188,4 @@ def train_gan(
 
 if __name__ == "__main__":
     train_gan()
-
 
